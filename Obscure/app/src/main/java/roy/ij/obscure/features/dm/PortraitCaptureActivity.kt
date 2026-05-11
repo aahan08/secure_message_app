@@ -1,6 +1,13 @@
 package roy.ij.obscure.features.dm
 
+import android.os.Bundle
+import android.view.WindowManager
 import com.journeyapps.barcodescanner.CaptureActivity
 
 // Empty subclass that we can reference in the IntentIntegrator
-class PortraitCaptureActivity : CaptureActivity()
+class PortraitCaptureActivity : CaptureActivity(){
+    override fun onCreate(savedInstanceState: Bundle?) {
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) // ✅
+        super.onCreate(savedInstanceState)
+    }
+}
