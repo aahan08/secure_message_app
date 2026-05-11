@@ -10,6 +10,15 @@ plugins {
     kotlin("kapt") // ONLY for Hilt
 }
 
+import java.util.Properties
+
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+
 android {
     namespace = "roy.ij.obscure"
     compileSdk = 36
@@ -19,29 +28,41 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
 
             buildConfigField(
                 "String",
                 "BASE_URL",
-                "\"https://ij.dophera.xyz/\""
+                "\"https://obscure-load-balancer.ij-roy.workers.dev/\""
             )
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"https://ij.dophera.xyz/api/\""
+                "\"https://obscure-load-balancer.ij-roy.workers.dev/api/\""
             )
             buildConfigField(
                 "String",
                 "SOCKET_BASE_URL",
-                "\"https://ij.dophera.xyz\""
+                "\"https://obscure-load-balancer.ij-roy.workers.dev\""
             )
         }
 
