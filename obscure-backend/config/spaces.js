@@ -1,14 +1,14 @@
 const AWS = require('aws-sdk');
 
-// DigitalOcean Spaces endpoint — e.g. "blr1.digitaloceanspaces.com"
-const spacesEndpoint = new AWS.Endpoint(process.env.DO_SPACES_ENDPOINT);
+function createSpacesClient(env = process.env) {
+  return new AWS.S3({
+    endpoint: new AWS.Endpoint(env.DO_SPACES_ENDPOINT),
+    accessKeyId: env.DO_SPACES_KEY,
+    secretAccessKey: env.DO_SPACES_SECRET,
+    signatureVersion: 'v4',
+    region: env.DO_SPACES_REGION || 'sgp1'
+  });
+}
 
-const s3 = new AWS.S3({
-  endpoint: spacesEndpoint,
-  accessKeyId: process.env.DO_SPACES_KEY,
-  secretAccessKey: process.env.DO_SPACES_SECRET,
-  signatureVersion: 'v4', // required for presigned URLs
-  region: "sgp1", 
-});
-
-module.exports = s3;
+module.exports = createSpacesClient();
+module.exports.createSpacesClient = createSpacesClient;

@@ -1,28 +1,20 @@
 const express = require('express');
-const { requireAuth } = require('../middleware/socketAuth');
+const { requireAuth } = require('../middleware/auth');
+const { asyncHandler } = require('../middleware/asyncHandler');
 const {
   createRoom, requestJoin, approveMember, listMyRooms, getRoomMembers, getRoomInfo, denyMember, startDm
 } = require('../controllers/roomController');
 
 const router = express.Router();
 
-router.post('/create', requireAuth, createRoom);
-router.post('/join', requireAuth, requestJoin);
-router.post('/approve', requireAuth, approveMember);
-router.get('/mine', requireAuth, async (req, res, next) => {
-  // wrapper to include "type" field in selection
-  try {
-    const Room = require('../models/Room');
-    const rooms = await Room.find({ 'members.userId': req.user.id })
-      .select('roomId type expiresAt members')
-      .lean();
-    res.json({ rooms });
-  } catch (e) { next(e); }
-});
-router.get('/:roomId/members', requireAuth, getRoomMembers);
-router.post('/deny', requireAuth, denyMember);         
-router.get('/:roomId/info', requireAuth, getRoomInfo);
+router.post('/create', requireAuth, asyncHandler(createRoom));
+router.post('/join', requireAuth, asyncHandler(requestJoin));
+router.post('/approve', requireAuth, asyncHandler(approveMember));
+router.get('/mine', requireAuth, asyncHandler(listMyRooms));
+router.get('/:roomId/members', requireAuth, asyncHandler(getRoomMembers));
+router.post('/deny', requireAuth, asyncHandler(denyMember));
+router.get('/:roomId/info', requireAuth, asyncHandler(getRoomInfo));
 // start DM
-router.post('/dm/start', requireAuth, startDm);
+router.post('/dm/start', requireAuth, asyncHandler(startDm));
 
 module.exports = router;

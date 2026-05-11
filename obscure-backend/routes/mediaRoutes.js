@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { getUploadUrl, getDownloadUrl } = require('../controllers/mediaController');
-const { requireAuth } = require('../middleware/socketAuth');
+const { requireAuth } = require('../middleware/auth');
+const { asyncHandler } = require('../middleware/asyncHandler');
 
-router.post('/upload-url', requireAuth, getUploadUrl);
-router.get('/download-url', requireAuth, getDownloadUrl);
+router.post('/upload-url', requireAuth, asyncHandler(getUploadUrl));
+router.get('/download-url', requireAuth, asyncHandler(getDownloadUrl));
 
 module.exports = router;

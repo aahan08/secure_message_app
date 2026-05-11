@@ -1,1 +1,7 @@
+node_modules/
+obscure-backend/node_modules/
+obscure-backend/.env
+obscure-backend/.env.*
 obscure-backend/config/serviceAccountKey.json
+obscure-backend/config/serviceAccountKey.base64
+obscure-backend/config/*service*account*.json

@@ -1,43 +1,34 @@
-// config/firebase.js
-const fs = require('fs');
-const path = require('path');
-
-try {
-  // If GOOGLE_APPLICATION_CREDENTIALS provided and file doesn't exist,
-  // try to create it from an env secret we set in the platform.
-  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  if (credPath && !fs.existsSync(credPath)) {
-    // Try base64 secret first (recommended)
-    if (process.env.FIREBASE_SA_BASE64) {
-      const dir = path.dirname(credPath);
-      fs.mkdirSync(dir, { recursive: true });
-      const buf = Buffer.from(process.env.FIREBASE_SA_BASE64, 'base64');
-      fs.writeFileSync(credPath, buf, { mode: 0o600 });
-      console.log('✅ Wrote Firebase service account (from base64 env) to', credPath);
-    } else if (process.env.FIREBASE_SA_JSON) {
-      // fallback: direct JSON in env (less preferred)
-      const dir = path.dirname(credPath);
-      fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(credPath, process.env.FIREBASE_SA_JSON, { mode: 0o600 });
-      console.log('✅ Wrote Firebase service account (from json env) to', credPath);
-    } else {
-      console.log('ℹ️ No FIREBASE_SA_BASE64 or FIREBASE_SA_JSON env found; not creating cred file');
-    }
-  }
-} catch (e) {
-  console.error('⚠️ Error while attempting to write Firebase service account file:', e);
-}
-
 let admin = null;
+
 try {
   const firebaseAdmin = require('firebase-admin');
-  // If GOOGLE_APPLICATION_CREDENTIALS is set, admin.initializeApp() will pick it up
+  const credential = buildCredential(firebaseAdmin);
+
   if (!firebaseAdmin.apps.length) {
-    firebaseAdmin.initializeApp();
+    firebaseAdmin.initializeApp(credential ? { credential } : undefined);
   }
+
   admin = firebaseAdmin;
-  console.log('✅ Firebase Admin initialized');
+  console.log('Firebase Admin initialized');
 } catch (e) {
-  console.log('ℹ️ Firebase Admin not initialized (no credentials). This is OK for now.');
+  console.warn('Firebase Admin not initialized:', e.message);
 }
-module.exports =  admin ;
+
+function buildCredential(firebaseAdmin) {
+  const serviceAccount = readServiceAccountFromEnv();
+  if (!serviceAccount) return null;
+  return firebaseAdmin.credential.cert(serviceAccount);
+}
+
+function readServiceAccountFromEnv() {
+  if (process.env.FIREBASE_SA_BASE64) {
+    const json = Buffer.from(process.env.FIREBASE_SA_BASE64, 'base64').toString('utf8');
+    return JSON.parse(json);
+  }
+  if (process.env.FIREBASE_SA_JSON) {
+    return JSON.parse(process.env.FIREBASE_SA_JSON);
+  }
+  return null;
+}
+
+module.exports = admin;
