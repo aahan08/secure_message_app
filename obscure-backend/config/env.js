@@ -9,6 +9,9 @@ function validateEnv(source = process.env) {
 
   requireValue(env, 'MONGO_URI', errors);
   requireValue(env, 'JWT_SECRET', errors);
+  if (isProduction) {
+    requireValue(env, 'REDIS_URL', errors);
+  }
 
   const port = env.PORT || String(DEFAULT_PORT);
   if (!/^\d+$/.test(String(port))) {
@@ -44,6 +47,7 @@ function validateEnv(source = process.env) {
     PORT: Number(port),
     MONGO_URI: env.MONGO_URI,
     JWT_SECRET: env.JWT_SECRET,
+    REDIS_URL: env.REDIS_URL || '',
     CORS_ORIGIN: env.CORS_ORIGIN || '',
     PYTHON_SERVICE_URL: env.PYTHON_SERVICE_URL || '',
     MEDIA_ROUTES_ENABLED: mediaEnabled,

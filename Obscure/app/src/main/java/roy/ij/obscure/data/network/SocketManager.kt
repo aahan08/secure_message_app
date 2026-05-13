@@ -12,6 +12,7 @@ class SocketManager(private val token: String) {
         val opts = IO.Options().apply {
             reconnection = true
             forceNew = true
+            transports = arrayOf("websocket")
             extraHeaders = mapOf("Authorization" to listOf("Bearer $token"))
         }
         socket = IO.socket(BuildConfig.SOCKET_BASE_URL, opts)

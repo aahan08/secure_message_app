@@ -262,6 +262,23 @@ fun ConversationScreen(viewModel: ChatViewModel) {
                                     )
                                     MsgType.MEDIA -> MediaBubble(m)
                                 }
+
+                                if (m.mine && m.status != MessageStatus.SENT) {
+                                    Text(
+                                        text = when (m.status) {
+                                            MessageStatus.SENDING -> "Sending..."
+                                            MessageStatus.FAILED -> "Failed to send"
+                                            MessageStatus.SENT -> ""
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (m.status == MessageStatus.FAILED) {
+                                            Color(0xFFB42318)
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        modifier = Modifier.padding(top = 2.dp, end = 6.dp)
+                                    )
+                                }
                             }
                         }
                     }

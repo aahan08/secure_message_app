@@ -6,6 +6,10 @@ const { createApp } = require('./app');
 const { validateEnv } = require('./config/env');
 const { connectDatabase } = require('./config/database');
 const { initChatSocket } = require('./sockets/chatSocket');
+const {
+  configureSocketRedisAdapter,
+  closeSocketRedisAdapter
+} = require('./sockets/redisAdapter');
 
 async function start() {
   const env = validateEnv(process.env);
@@ -16,6 +20,7 @@ async function start() {
   const app = createApp({ env });
   const server = http.createServer(app);
   const io = new Server(server, {
+    transports: ['websocket'],
     cors: {
       origin: env.CORS_ORIGIN
         ? env.CORS_ORIGIN.split(',').map((item) => item.trim()).filter(Boolean)
@@ -24,7 +29,10 @@ async function start() {
     }
   });
 
+  const redisAdapterClients = await configureSocketRedisAdapter(io, env);
   initChatSocket(io);
+
+  server.on('close', () => closeSocketRedisAdapter(redisAdapterClients));
 
   server.listen(env.PORT, () => {
     console.log(`Obscure backend listening on port ${env.PORT}`);

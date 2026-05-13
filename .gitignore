@@ -5,3 +5,5 @@ obscure-backend/.env.*
 obscure-backend/config/serviceAccountKey.json
 obscure-backend/config/serviceAccountKey.base64
 obscure-backend/config/*service*account*.json
+Obscure/app/release/app-release.aab
+Obscure/app/release/output-metadata.json

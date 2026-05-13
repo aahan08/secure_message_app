@@ -5,10 +5,12 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import org.json.JSONObject
 import roy.ij.obscure.App
@@ -22,6 +24,7 @@ import javax.crypto.SecretKey
 import java.time.Instant
 
 enum class MsgType { TEXT, MEDIA }
+enum class MessageStatus { SENDING, SENT, FAILED }
 
 data class ChatMessage(
     val id: String?,
@@ -31,7 +34,8 @@ data class ChatMessage(
     val at: Long,
     val type: MsgType = MsgType.TEXT,
     val mediaLocalPath: String? = null,
-    val mediaMime: String? = null
+    val mediaMime: String? = null,
+    val status: MessageStatus = MessageStatus.SENT
 )
 
 data class ChatUiState(
@@ -57,6 +61,10 @@ class ChatViewModel(
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
 
     private val socket = SocketManager(token)
+
+    companion object {
+        private const val SOCKET_ACK_TIMEOUT_MS = 10_000L
+    }
 
     init {
         viewModelScope.launch {
@@ -243,11 +251,33 @@ class ChatViewModel(
                     )
                 )
 
-                // 4) emit
-                socket.sendMessage(payload) { /* ack ignored for now */ }
+                // 4) pending UI, then emit and wait for server persistence ack
+                val localId = "local-${System.currentTimeMillis()}"
+                appendMessage(
+                    ChatMessage(
+                        id = localId,
+                        alias = "Me",
+                        text = text,
+                        mine = true,
+                        at = System.currentTimeMillis(),
+                        status = MessageStatus.SENDING
+                    )
+                )
 
-                // 5) optimistic UI
-                appendMessage(ChatMessage(id = null, alias = "Me", text = text, mine = true, at = System.currentTimeMillis()))
+                val ack = sendSocketMessage(payload)
+                if (ack?.optBoolean("ok", false) == true) {
+                    updateMessage(localId) { current ->
+                        current.copy(
+                            id = ack.optString("id").takeIf { it.isNotBlank() } ?: current.id,
+                            at = parseEpochMillis(ack.optString("createdAt")) ?: current.at,
+                            status = MessageStatus.SENT
+                        )
+                    }
+                } else {
+                    updateMessage(localId) { current ->
+                        current.copy(status = MessageStatus.FAILED)
+                    }
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
                 appendMessage(ChatMessage(null, "System", "❌ send failed: ${e.message}", true, System.currentTimeMillis()))
@@ -257,6 +287,28 @@ class ChatViewModel(
 
     private fun appendMessage(m: ChatMessage) {
         _state.update { it.copy(messages = it.messages + m) }
+    }
+
+    private fun updateMessage(id: String, transform: (ChatMessage) -> ChatMessage) {
+        _state.update { current ->
+            current.copy(messages = current.messages.map { message ->
+                if (message.id == id) transform(message) else message
+            })
+        }
+    }
+
+    private suspend fun sendSocketMessage(payload: JSONObject): JSONObject? =
+        withTimeoutOrNull(SOCKET_ACK_TIMEOUT_MS) {
+            val ack = CompletableDeferred<JSONObject?>()
+            socket.sendMessage(payload) { response ->
+                ack.complete(response)
+            }
+            ack.await()
+        }
+
+    private fun parseEpochMillis(value: String?): Long? {
+        if (value.isNullOrBlank()) return null
+        return runCatching { Instant.parse(value).toEpochMilli() }.getOrNull()
     }
 
     private suspend fun loadHistory(token: String, roomId: String, myId: String) = withContext(Dispatchers.IO) {
@@ -344,8 +396,8 @@ class ChatViewModel(
 
     fun sendMedia(uri: Uri) {
         val ctx = App.instance // or pass from Composable
-        val token = token
         val members = state.value.members
+        val localId = "local-media-${System.currentTimeMillis()}"
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val contentResolver = ctx.contentResolver
@@ -354,14 +406,15 @@ class ChatViewModel(
                 withContext(Dispatchers.Main) {
                     appendMessage(
                         ChatMessage(
-                            id = null,
+                            id = localId,
                             alias = "Me",
                             mine = true,
                             at = System.currentTimeMillis(),
                             type = MsgType.MEDIA,
                             // Show selected file immediately using its content URI
                             mediaLocalPath = uri.toString(),
-                            mediaMime = mime
+                            mediaMime = mime,
+                            status = MessageStatus.SENDING
                         )
                     )
                 }
@@ -400,11 +453,27 @@ class ChatViewModel(
                         "keyEnvelope" to envelopes
                     )
                 )
-                socket.sendMessage(payload) {}
+                val ack = sendSocketMessage(payload)
+                if (ack?.optBoolean("ok", false) == true) {
+                    updateMessage(localId) { current ->
+                        current.copy(
+                            id = ack.optString("id").takeIf { it.isNotBlank() } ?: current.id,
+                            at = parseEpochMillis(ack.optString("createdAt")) ?: current.at,
+                            status = MessageStatus.SENT
+                        )
+                    }
+                } else {
+                    updateMessage(localId) { current ->
+                        current.copy(status = MessageStatus.FAILED)
+                    }
+                }
 
 
             } catch (e: Exception) {
                 e.printStackTrace()
+                updateMessage(localId) { current ->
+                    current.copy(status = MessageStatus.FAILED)
+                }
             }
         }
     }

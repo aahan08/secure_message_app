@@ -38,7 +38,6 @@ import roy.ij.obscure.navigation.NavRoutes
 import roy.ij.obscure.security.SecureStore
 import roy.ij.obscure.ui.theme.BaatCheetTheme
 import androidx.appcompat.app.AppCompatDelegate
-import android.view.WindowManager
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import roy.ij.obscure.security.panicGesture
@@ -47,8 +46,6 @@ class MainActivity : FragmentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
