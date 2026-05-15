@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Retrofit/Gson reads DTO field names reflectively. Keep API payload models stable
+# when release minification is enabled.
+-keep class roy.ij.obscure.data.network.** { *; }
+-keep class roy.ij.obscure.data.model.** { *; }

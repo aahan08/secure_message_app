@@ -3,6 +3,7 @@ package roy.ij.obscure
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +49,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        enableEdgeToEdge()
 
         setContent {
             BaatCheetTheme {

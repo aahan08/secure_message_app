@@ -21,6 +21,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,19 +34,42 @@ fun ChatListScreen(
 
     if (Build.VERSION.SDK_INT >= 33) {
         val ctx = LocalContext.current
+        var showNotificationPermissionDialog by rememberSaveable { mutableStateOf(true) }
         val granted = ContextCompat.checkSelfPermission(
             ctx,
             android.Manifest.permission.POST_NOTIFICATIONS
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val launcher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) {
+            showNotificationPermissionDialog = false
+        }
 
-        if (!granted) {
-            val launcher = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) {}
-
-            LaunchedEffect(Unit) {
-                launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-            }
+        if (!granted && showNotificationPermissionDialog) {
+            AlertDialog(
+                onDismissRequest = { showNotificationPermissionDialog = false },
+                title = { Text("Stay notified") },
+                text = {
+                    Text(
+                        "Obscure can send message notifications so you do not miss new replies. You can change this later in Android settings."
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showNotificationPermissionDialog = false
+                            launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    ) {
+                        Text("Allow notifications")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showNotificationPermissionDialog = false }) {
+                        Text("Not now")
+                    }
+                }
+            )
         }
     }
 

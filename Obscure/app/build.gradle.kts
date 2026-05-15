@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -9,8 +11,6 @@ plugins {
     id("com.google.dagger.hilt.android") version "2.51"
     kotlin("kapt") // ONLY for Hilt
 }
-
-import java.util.Properties
 
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties().apply {
@@ -27,8 +27,8 @@ android {
         applicationId = "roy.ij.obscure"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.1.0"
+        versionCode = 5
+        versionName = "1.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,7 +46,11 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("release")
 
             buildConfigField(
@@ -70,17 +74,17 @@ android {
             buildConfigField(
                 "String",
                 "BASE_URL",
-                "\"https://ij.dophera.xyz/\""
+                "\"https://obscure-load-balancer.ij-roy.workers.dev/\""
             )
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"https://ij.dophera.xyz/api/\""
+                "\"https://obscure-load-balancer.ij-roy.workers.dev/api/\""
             )
             buildConfigField(
                 "String",
                 "SOCKET_BASE_URL",
-                "\"https://ij.dophera.xyz\""
+                "\"https://obscure-load-balancer.ij-roy.workers.dev\""
             )
         }
     }
